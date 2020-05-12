@@ -70,7 +70,10 @@ namespace Centaurus.BanExtension
                 BannedClientsManager.RegisterBan(connection.Ip, currentDate);
                 BannedClientsManager.RegisterBan(connection.ClientPubKey?.ToString(), currentDate);
                 throw new ConnectionCloseException(WebSocketCloseStatus.PolicyViolation, "Too many invalid messages.");
-            }
+            } 
+            else if (BannedClientsManager.IsClientBanned(connection.Ip, currentDate) 
+                || BannedClientsManager.IsClientBanned(connection.ClientPubKey?.ToString(), currentDate))
+                throw new ConnectionCloseException(WebSocketCloseStatus.PolicyViolation, "This client is banned.");
         }
 
         private void ExtensionsManager_OnConnectionValidated(BaseWebSocketConnection connection)
@@ -82,6 +85,9 @@ namespace Centaurus.BanExtension
                 BannedClientsManager.RegisterBan(connection.ClientPubKey?.ToString(), currentDate);
                 throw new ConnectionCloseException(WebSocketCloseStatus.PolicyViolation, "Too many connections.");
             }
+            else if (BannedClientsManager.IsClientBanned(connection.Ip, currentDate) 
+                || BannedClientsManager.IsClientBanned(connection.ClientPubKey?.ToString(), currentDate))
+                throw new ConnectionCloseException(WebSocketCloseStatus.PolicyViolation, "This client is banned.");
         }
 
         private void ExtensionsManager_OnBeforeNewConnection(WebSocket socket, string ip)
@@ -92,6 +98,8 @@ namespace Centaurus.BanExtension
                 BannedClientsManager.RegisterBan(ip, currentDate);
                 throw new ConnectionCloseException(WebSocketCloseStatus.PolicyViolation, "Too many connections.");
             }
+            else if (BannedClientsManager.IsClientBanned(ip, currentDate))
+                throw new ConnectionCloseException(WebSocketCloseStatus.PolicyViolation, "This client is banned.");
         }
 
         #endregion

@@ -19,6 +19,9 @@ namespace Centaurus.BanExtension.Test
 {
     public class BanExtensionTests
     {
+        const int banPeriod = 5;
+        const int banPeriodMultiplier = 1;
+
         [OneTimeSetUp]
         public void Setup()
         {
@@ -28,7 +31,7 @@ namespace Centaurus.BanExtension.Test
 
             MongoDBServerHelper.RunMongoDBServers(new int[] { dbPort }, replicaSet);
 
-            var extensionsPath = ExtensionConfigGenerator.Generate(dbPort, dbName, replicaSet);
+            var extensionsPath = ExtensionConfigGenerator.Generate(dbPort, dbName, replicaSet, banPeriod, banPeriodMultiplier);
 
             var settings = new AlphaSettings();
             settings.ExtensionsConfigFilePath = Path.GetFullPath(extensionsPath);
@@ -47,7 +50,7 @@ namespace Centaurus.BanExtension.Test
         }
 
         [Test]
-        public void BannedClientsSaveAndLoadTest()
+        public void BannedClientsManagingTest()
         {
             var extensionSettings = Global.ExtensionsManager.Extensions.First().Config;
             var banExtension = new BanExtension();
@@ -56,16 +59,38 @@ namespace Centaurus.BanExtension.Test
             var banTime = DateTime.UtcNow;
             banTime = banTime.AddTicks(-banTime.Ticks % TimeSpan.TicksPerSecond); //ignore milliseconds because it's rounded on saving
             var source = "testClient";
+
+            //register and permanent banned client
             banExtension.BannedClientsManager.RegisterBan(source, banTime);
             banExtension.BannedClientsManager.UpdateClients();
 
+            banExtension.BannedClientsManager.TryGetBannedClient(source, out var bannedClientRecord);
+
+            //check probation end date
+            Assert.AreEqual(bannedClientRecord.Till + new TimeSpan(0, 0, 5), bannedClientRecord.GetProbationEnd(5, 1));
+
+            //load client from db
             var clients = banExtension.BannedClientsManager.Storage.GetBannedClients();
             Assert.AreEqual(clients.Count, 1);
 
+            //compare loaded from db object with one that stored in memory
             var firstClient = clients.Values.First();
-            Assert.AreEqual(firstClient.Source, source);
-            Assert.AreEqual(firstClient.BanCounts, 1);
-            Assert.AreEqual(firstClient.Till, BannedClientRecord.CalcTillDate(banTime, banExtension.SingleBanPeriod, banExtension.BanPeriodMultiplier, firstClient.BanCounts));
+            Assert.AreEqual(firstClient.Source, bannedClientRecord.Source);
+            Assert.AreEqual(firstClient.BanCounts, bannedClientRecord.BanCounts);
+            Assert.AreEqual(firstClient.Till, bannedClientRecord.Till);
+            Assert.AreEqual(firstClient.GetProbationEnd(banPeriod, banPeriodMultiplier)
+                , bannedClientRecord.GetProbationEnd(banPeriod, banPeriodMultiplier));
+
+            //cleanup test
+            Thread.Sleep(banPeriod * 1000 * 2); //wait for ban and probation end
+            banExtension.BannedClientsManager.CleanUpClients();
+            banExtension.BannedClientsManager.UpdateClients();
+
+            banExtension.BannedClientsManager.TryGetBannedClient(source, out bannedClientRecord);
+
+            Assert.AreEqual(bannedClientRecord, null);
+            clients = banExtension.BannedClientsManager.Storage.GetBannedClients();
+            Assert.AreEqual(clients.Count, 0);
 
             banExtension.Dispose();
 

@@ -40,7 +40,10 @@ namespace Centaurus.BanExtension
                 var banRecord = newBannedClientRecords[i];
                 var source = banRecord.Source;
                 var currentAccFilter = filter.Eq(a => a.Source, source);
-                updates[i] = new ReplaceOneModel<BannedClientRecord>(currentAccFilter, banRecord) { IsUpsert = true };
+                if (banRecord.BanCounts == 0)
+                    updates[i] = new DeleteOneModel<BannedClientRecord>(currentAccFilter);
+                else
+                    updates[i] = new ReplaceOneModel<BannedClientRecord>(currentAccFilter, banRecord) { IsUpsert = true };
             }
             bannedClientsCollection.BulkWrite(updates);
         }
