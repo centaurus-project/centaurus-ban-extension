@@ -20,20 +20,9 @@ namespace Centaurus.BanExtension
             return Till >= currentDate;
         }
 
-        public void SetTillDate(DateTime currentDate, int singleBanPeiod, int banPeriodMultiplier)
+        public void SetTillDate(DateTime currentDate, int singleBanPeiod, int boostFactor)
         {
-            int banPeriod;
-            try
-            {
-                checked
-                {
-                    banPeriod = (int)(Math.Pow(singleBanPeiod, BanCounts) * banPeriodMultiplier);
-                }
-            }
-            catch (OverflowException)
-            {
-                banPeriod = int.MaxValue;
-            }
+            var banPeriod = GetBanPeriod(singleBanPeiod, boostFactor, BanCounts);
             DateTime newValue;
             try
             {
@@ -47,37 +36,53 @@ namespace Centaurus.BanExtension
                 Till = newValue;
         }
 
-        public bool IsOnProbation(DateTime currentDate, int singleBanPeiod, int banPeriodMultiplier)
+        public bool IsOnProbation(DateTime currentDate, int singleBanPeiod, int boostFactor)
         {
-            return BanCounts > 0 && GetProbationEnd(singleBanPeiod, banPeriodMultiplier) > currentDate;
+            return BanCounts > 0 && GetProbationEndDate(singleBanPeiod, boostFactor) > currentDate;
         }
 
-        public DateTime GetProbationEnd(int singleBanPeiod, int banPeriodMultiplier)
+        public DateTime GetProbationEndDate(int singleBanPeiod, int boostFactor)
         {
             if (BanCounts == 0)
                 return DateTime.MinValue;
 
-            int banPeriod;
-            try
-            {
-                checked
-                {
-                    banPeriod = (int)(Math.Pow(singleBanPeiod, BanCounts) * Math.Sqrt(banPeriodMultiplier));
-                }
-            }
-            catch (OverflowException)
-            {
-                banPeriod = int.MaxValue;
-            }
+            int probationPeriod = GetProbationPeriod(singleBanPeiod, boostFactor, BanCounts);
 
             try
             {
-                return Till + new TimeSpan(0, 0, banPeriod);
+                return Till + new TimeSpan(0, 0, probationPeriod);
             }
             catch (ArgumentOutOfRangeException)
             {
                 return DateTime.MaxValue;
             }
+        }
+
+        public static int GetProbationPeriod(int singleBanPeiod, int boostFactor, int banCounts)
+        {
+            return GetPeriod(singleBanPeiod, boostFactor, banCounts - 1);
+        }
+
+        public static int GetBanPeriod(int singleBanPeiod, int boostFactor, int banCounts)
+        {
+            return GetPeriod(singleBanPeiod, boostFactor, banCounts);
+        }
+
+        static int GetPeriod(int singleBanPeiod, int boostFactor, int banCounts)
+        {
+            int period;
+            try
+            {
+                checked
+                {
+                    period = (int)(Math.Pow(boostFactor, banCounts) * singleBanPeiod);
+                }
+            }
+            catch (OverflowException)
+            {
+                period = int.MaxValue;
+            }
+            return period;
         }
     }
 }

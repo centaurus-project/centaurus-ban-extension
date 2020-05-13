@@ -16,7 +16,7 @@ namespace Centaurus.BanExtension
         private object updatedClientsSyncRoot = new { };
 
         private int singleBanPeriod;
-        private int banPeriodMultiplier;
+        private int boostFactor;
         private Dictionary<string, BannedClientRecord> bannedClients;
         private Dictionary<string, BannedClientRecord> updatedClients;
         private Timer savingTimer;
@@ -25,7 +25,7 @@ namespace Centaurus.BanExtension
         public BannedClientsManager(string connectionString, int _singleBanPeriod, int _banPeriodMultiplier)
         {
             singleBanPeriod = _singleBanPeriod;
-            banPeriodMultiplier = _banPeriodMultiplier;
+            boostFactor = _banPeriodMultiplier;
 
             Storage = new BannedClientsStorage(connectionString);
 
@@ -44,7 +44,7 @@ namespace Centaurus.BanExtension
             foreach (var bannedClient in allBannedClients)
             {
                 lock (bannedClient)
-                    if (!bannedClient.IsOnProbation(currentDate, singleBanPeriod, banPeriodMultiplier))
+                    if (!bannedClient.IsOnProbation(currentDate, singleBanPeriod, boostFactor))
                         bannedClient.BanCounts = 0;
 
                 lock (updatedClientsSyncRoot)
@@ -140,11 +140,11 @@ namespace Centaurus.BanExtension
             lock (bannedClient)
             {
                 if (bannedClient.BanCounts > 0
-                    && !bannedClient.IsOnProbation(currentDate, singleBanPeriod, banPeriodMultiplier)) //if probation period is over, but bans count weren't reset
+                    && !bannedClient.IsOnProbation(currentDate, singleBanPeriod, boostFactor)) //if probation period is over, but bans count weren't reset
                     bannedClient.BanCounts = 0;
 
                 bannedClient.BanCounts++;
-                bannedClient.SetTillDate(currentDate, singleBanPeriod, banPeriodMultiplier);
+                bannedClient.SetTillDate(currentDate, singleBanPeriod, boostFactor);
             }
             //add ban record to update list
             lock (updatedClientsSyncRoot)

@@ -7,7 +7,7 @@ namespace Centaurus.BanExtension.Test
 {
     public static class ExtensionConfigGenerator
     {
-        public static string Generate(int dbPort, string dbName, string replicaSet, int banPeriod, int banPeriodMultiplier)
+        public static string Generate(int dbPort, string dbName, string replicaSet, int banPeriod, int boostFactor)
         {
             var o = new
             {
@@ -17,7 +17,7 @@ namespace Centaurus.BanExtension.Test
                         extensionConfig = new {
                             connectionString = $"mongodb://localhost:{dbPort}/{dbName}?replicaSet={replicaSet}",
                             singleBanPeriod = banPeriod,
-                            banPeriodMultiplier = banPeriodMultiplier
+                            boostFactor
                         }
                     }
                 }

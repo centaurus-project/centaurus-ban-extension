@@ -20,7 +20,7 @@ namespace Centaurus.BanExtension.Test
     public class BanExtensionTests
     {
         const int banPeriod = 5;
-        const int banPeriodMultiplier = 1;
+        const int boostFactor = 1;
 
         [OneTimeSetUp]
         public void Setup()
@@ -31,7 +31,7 @@ namespace Centaurus.BanExtension.Test
 
             MongoDBServerHelper.RunMongoDBServers(new int[] { dbPort }, replicaSet);
 
-            var extensionsPath = ExtensionConfigGenerator.Generate(dbPort, dbName, replicaSet, banPeriod, banPeriodMultiplier);
+            var extensionsPath = ExtensionConfigGenerator.Generate(dbPort, dbName, replicaSet, banPeriod, boostFactor);
 
             var settings = new AlphaSettings();
             settings.ExtensionsConfigFilePath = Path.GetFullPath(extensionsPath);
@@ -67,7 +67,7 @@ namespace Centaurus.BanExtension.Test
             banExtension.BannedClientsManager.TryGetBannedClient(source, out var bannedClientRecord);
 
             //check probation end date
-            Assert.AreEqual(bannedClientRecord.Till + new TimeSpan(0, 0, 5), bannedClientRecord.GetProbationEnd(5, 1));
+            Assert.AreEqual(bannedClientRecord.Till + new TimeSpan(0, 0, 5), bannedClientRecord.GetProbationEndDate(5, 1));
 
             //load client from db
             var clients = banExtension.BannedClientsManager.Storage.GetBannedClients();
@@ -78,11 +78,12 @@ namespace Centaurus.BanExtension.Test
             Assert.AreEqual(firstClient.Source, bannedClientRecord.Source);
             Assert.AreEqual(firstClient.BanCounts, bannedClientRecord.BanCounts);
             Assert.AreEqual(firstClient.Till, bannedClientRecord.Till);
-            Assert.AreEqual(firstClient.GetProbationEnd(banPeriod, banPeriodMultiplier)
-                , bannedClientRecord.GetProbationEnd(banPeriod, banPeriodMultiplier));
+            Assert.AreEqual(firstClient.GetProbationEndDate(banPeriod, boostFactor)
+                , bannedClientRecord.GetProbationEndDate(banPeriod, boostFactor));
 
             //cleanup test
-            Thread.Sleep(banPeriod * 1000 * 2); //wait for ban and probation end
+            Thread.Sleep((BannedClientRecord.GetBanPeriod(banPeriod, boostFactor, bannedClientRecord.BanCounts) 
+                + BannedClientRecord.GetProbationPeriod(banPeriod, boostFactor, bannedClientRecord.BanCounts)) * 1000); //wait for ban and probation end
             banExtension.BannedClientsManager.CleanUpClients();
             banExtension.BannedClientsManager.UpdateClients();
 

@@ -14,7 +14,7 @@ namespace Centaurus.BanExtension
     {
         const string connectionStringPropName = "connectionString";
         const string singleBanPeriodPropName = "singleBanPeriod";
-        const string banPeriodMultiplierPropName = "banPeriodMultiplier";
+        const string boostFactor = "boostFactor";
 
         const int violationsCountThreshold = 10;
         const int violationsPeriodThreshold = 1000 * 60; //a minute 
@@ -23,7 +23,7 @@ namespace Centaurus.BanExtension
         public BanCandidatesManager BanCandidatesManager { get; private set; }
 
         public int SingleBanPeriod { get; private set; } //in seconds
-        public int BanPeriodMultiplier { get; private set; }
+        public int BoostFactor { get; private set; }
         public string ConnectionString { get; private set; }
 
         public void Init(Dictionary<string, string> settings)
@@ -31,10 +31,10 @@ namespace Centaurus.BanExtension
 
             ConnectionString = GetExtensionConfigValue<string>(settings, connectionStringPropName);
             SingleBanPeriod = GetExtensionConfigValue<int>(settings, singleBanPeriodPropName);
-            BanPeriodMultiplier = GetExtensionConfigValue<int>(settings, banPeriodMultiplierPropName);
+            BoostFactor = GetExtensionConfigValue<int>(settings, boostFactor);
 
 
-            BannedClientsManager = new BannedClientsManager(ConnectionString, SingleBanPeriod, BanPeriodMultiplier);
+            BannedClientsManager = new BannedClientsManager(ConnectionString, SingleBanPeriod, BoostFactor);
             BanCandidatesManager = new BanCandidatesManager(violationsCountThreshold, violationsPeriodThreshold);
 
             Global.ExtensionsManager.OnBeforeNewConnection += ExtensionsManager_OnBeforeNewConnection;
