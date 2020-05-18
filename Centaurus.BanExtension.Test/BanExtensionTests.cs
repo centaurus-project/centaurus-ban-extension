@@ -36,7 +36,11 @@ namespace Centaurus.BanExtension.Test
             var settings = new AlphaSettings();
             settings.ExtensionsConfigFilePath = Path.GetFullPath(extensionsPath);
             settings.ConnectionString = $"mongodb://localhost:{dbPort}/{dbName}?replicaSet={replicaSet}";
-            GlobalInitHelper.SetCommonSettings(settings, TestEnvironment.AlphaKeyPair.SecretSeed);
+            settings.HorizonUrl = "https://horizon-testnet.stellar.org";
+            settings.NetworkPassphrase = "Test SDF Network ; September 2015";
+            settings.CWD = "AppData";
+            settings.Secret = TestEnvironment.AlphaKeyPair.SecretSeed;
+
             settings.Build();
 
             GlobalInitHelper.Setup(GlobalInitHelper.GetPredefinedClients(), GlobalInitHelper.GetPredefinedAuditors(), settings, new MongoStorage());
@@ -147,7 +151,7 @@ namespace Centaurus.BanExtension.Test
                 var clientConnection = new AlphaWebSocketConnection(webSocket, "127.0.0.1") { ClientPubKey = pubKey };
                 for (var i = 0; i < 1000; i++)
                 {
-                    Global.ExtensionsManager.HandleMessageFailed(clientConnection, null, new BaseClientException());
+                    Global.ExtensionsManager.HandleMessageFailed(clientConnection, null, new ForbiddenException());
                 }
 
                 Assert.Fail("Client wasn't block after 1000 connections.");
